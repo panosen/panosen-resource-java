@@ -1,0 +1,2 @@
+# panosen-resource-java
+.gitignore
