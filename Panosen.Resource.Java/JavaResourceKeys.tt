@@ -1,0 +1,67 @@
+﻿<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Text.RegularExpressions" #>
+<#@ output extension=".cs" #>
+<#
+    var type = this.GetType();
+    var rootNamespace = this.Host.ResolveParameterValue("directiveId", "namespaceDirectiveProcessor", "namespaceHint");
+    var path =  this.Host.ResolvePath("files");
+    var items = new DirectoryInfo(path).GetFiles("*", SearchOption.AllDirectories);
+    var underlinePath = path.Replace("-", "_");
+    var regex = new Regex("[^a-zA-Z0-9]+");
+#>
+using System;
+
+namespace <#=rootNamespace#>
+{
+    /// <summary>
+    /// 资源文件名
+    /// </summary>
+    public class JavaResourceKeys
+    {
+<#
+    foreach (var item in items)
+    {
+        var underlineDirectoryFullName = item.Directory.FullName.Replace("-", "_");
+        var relativeUnderlineDirectoryPath = underlineDirectoryFullName.Replace(underlinePath, string.Empty);
+        var fixedRelativeUnderlineDirectoryPath = ToFixdPath(relativeUnderlineDirectoryPath);
+        var resourceKey = $"{relativeUnderlineDirectoryPath.Replace("\\", "_").Replace(".", "_")}_{item.Name.Replace(".", "_").Replace("-", "_")}";
+        var resourcePath = $"{rootNamespace}.files{fixedRelativeUnderlineDirectoryPath}.{item.Name}";
+#>
+
+        /// <summary>
+        /// <#=resourcePath#>
+        /// </summary>
+        public static readonly string <#=resourceKey#> = "<#=resourcePath#>";
+<#
+    }
+#>
+    }
+}
+<#+
+    static string ToFixdPath(string sourcePath)
+    {
+        sourcePath = sourcePath.Replace("\\", ".");
+
+        var regex = new Regex("\\.(\\d+)");
+
+        var matches = regex.Matches(sourcePath);
+        if (matches.Count == 0)
+        {
+            return sourcePath;
+        }
+
+        foreach (Match match in matches)
+        {
+            var key = match.Value;
+            var value = match.Groups[1].Value;
+            sourcePath = sourcePath.Replace(key, "._" + value);
+        }
+
+        return sourcePath;
+    }
+#>
